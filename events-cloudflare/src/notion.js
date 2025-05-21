@@ -30,6 +30,14 @@ export async function getTicketsForEvent(token, productsDatabaseId, eventId) {
     error: data.object === 'error' ? data.message : null
   });
   
+  // Log the full response for detailed debugging
+  console.log('Full Notion API response:', JSON.stringify(data, null, 2));
+  
+  if (data.results && data.results.length > 0) {
+    // Log the first result's properties to see what's available
+    console.log('First ticket properties:', JSON.stringify(data.results[0].properties, null, 2));
+  }
+  
   // If there's an error, log it and return an empty array
   if (data.object === 'error') {
     console.error('Error fetching tickets:', data.message);

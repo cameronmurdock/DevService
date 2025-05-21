@@ -258,6 +258,16 @@ export default {
         }
         // Check for guestbook status in URL parameters
         const guestbookStatus = url.searchParams.get('guestbook') || '';
+        
+        // Log the final event object being passed to the renderer
+        console.log('Final event object for rendering:', {
+          id: event.id,
+          name: event.name,
+          ticket_link: ticketLink,
+          isFreeEvent: isFreeEvent,
+          hasTickets: debugInfo.tickets && debugInfo.tickets.length > 0
+        });
+        
         return new Response(renderEventPage({ ...event, ticket_link: ticketLink, isFreeEvent }, guestbookStatus), { headers: { 'content-type': 'text/html' } });
       } catch (error) {
         return new Response(renderDebugPage('Error fetching event', {

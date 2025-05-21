@@ -52,19 +52,25 @@ export function renderGuestbookSection(eventId, status = '') {
 }
 
 export function renderTicketsSection(ticketLink, isFreeEvent = false) {
+  // Log the inputs to the function for debugging
+  console.log('renderTicketsSection called with:', { ticketLink, isFreeEvent });
+  
   if (isFreeEvent) {
+    console.log('Rendering free event ticket section');
     return `
       <p>This is a free event. No registration required.</p>
     `;
   }
   
   if (!ticketLink) {
+    console.log('Rendering no tickets available section');
     return `
       <p>No tickets available for this event at this time.</p>
       <p>Check back later for registration details.</p>
     `;
   }
   
+  console.log('Rendering ticket registration section with link:', ticketLink);
   return `
     <p>Secure your spot at this event!</p>
     <a href="${ticketLink}" class="button" target="_blank">Register Now</a>
