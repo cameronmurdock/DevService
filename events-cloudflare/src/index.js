@@ -214,6 +214,13 @@ export default {
         let stripeResponse = null;
         
         try {
+          // Log database IDs for debugging
+          console.log('Database IDs:', {
+            eventsDatabaseId: env.NOTION_DATABASE_ID,
+            productsDatabaseId: env.NOTION_PRODUCTS_DATABASE_ID,
+            currentEventId: eventId
+          });
+          
           // Get tickets/products for this event to find prices
           const tickets = await getTicketsForEvent(env.NOTION_TOKEN, env.NOTION_PRODUCTS_DATABASE_ID, eventId);
           debugInfo.tickets = tickets;

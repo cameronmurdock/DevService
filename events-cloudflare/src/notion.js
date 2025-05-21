@@ -16,7 +16,7 @@ export async function getTicketsForEvent(token, productsDatabaseId, eventId) {
     },
     body: JSON.stringify({
       filter: {
-        property: "Tickets", // Updated to use the correct relation field name
+        property: "Events", // Property name in the Products database that relates to Events
         relation: { contains: eventId }
       }
     })
