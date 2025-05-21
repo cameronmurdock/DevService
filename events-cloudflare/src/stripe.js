@@ -16,7 +16,7 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
   try {
     console.log(`Creating new payment link for event ${event.name} with price $${event.price}`);
     
-    // Format the event name for the product
+    // Format the event name for the product - include both event name and ticket name
     const productName = event.productName || `Ticket: ${event.name}`;
     
     // Create a payment link using the Stripe Payment Links API

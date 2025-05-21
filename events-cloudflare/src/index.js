@@ -242,7 +242,8 @@ export default {
               const eventWithPrice = { 
                 ...event, 
                 price: ticketPrice, 
-                productName: tickets[0].name || `Ticket: ${event.name}`,
+                // Create product name that includes both event name and ticket name
+                productName: tickets[0].name ? `${event.name} - ${tickets[0].name}` : `Ticket: ${event.name}`,
                 // Add any additional metadata needed for the ticket
                 ticketDescription: tickets[0].description || `Admission to ${event.name}`
               };
