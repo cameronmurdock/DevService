@@ -19,7 +19,50 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
     // Format the event name for the product - include both event name and ticket name
     const productName = event.productName || `Ticket: ${event.name}`;
     
-    // Create a payment link using the Stripe Payment Links API
+    // First, create a product for this event
+    console.log('Creating Stripe product for the event ticket');
+    const productRes = await fetch('https://api.stripe.com/v1/products', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${stripeSecretKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        'name': productName,
+        'description': event.ticketDescription || `Admission to ${event.name}`,
+        'metadata[event_id]': event.id
+      })
+    });
+    
+    const productData = await productRes.json();
+    if (productData.error) {
+      console.error('Error creating product:', productData.error);
+      return null;
+    }
+    
+    // Then create a price for the product
+    console.log('Creating Stripe price for the product');
+    const priceRes = await fetch('https://api.stripe.com/v1/prices', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${stripeSecretKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        'product': productData.id,
+        'unit_amount': Math.round((event.price || 0) * 100),
+        'currency': 'usd'
+      })
+    });
+    
+    const priceData = await priceRes.json();
+    if (priceData.error) {
+      console.error('Error creating price:', priceData.error);
+      return null;
+    }
+    
+    // Now create the payment link with the price ID
+    console.log('Creating payment link with the price');
     const res = await fetch('https://api.stripe.com/v1/payment_links', {
       method: 'POST',
       headers: {
@@ -27,17 +70,13 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-        // Line item configuration
-        'line_items[0][price_data][currency]': 'usd',
-        'line_items[0][price_data][product_data][name]': productName,
-        'line_items[0][price_data][product_data][description]': event.ticketDescription || `Admission to ${event.name}`,
-        'line_items[0][price_data][unit_amount]': Math.round((event.price || 0) * 100),
+        // Use the price ID we created
+        'line_items[0][price]': priceData.id,
         'line_items[0][quantity]': '1',
         
         // Payment link settings
         'after_completion[type]': 'hosted_confirmation',
         'billing_address_collection': 'auto',
-        'custom_text[submit][message]': 'Purchase Ticket',
         'submit_type': 'pay',
         
         // Metadata to track the event
