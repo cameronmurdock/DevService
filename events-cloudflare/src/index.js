@@ -225,42 +225,50 @@ export default {
           const tickets = await getTicketsForEvent(env.NOTION_TOKEN, env.NOTION_PRODUCTS_DATABASE_ID, eventId);
           debugInfo.tickets = tickets;
           
-          // Check if we already have a ticket link
-          if (!ticketLink && tickets && tickets.length > 0) {
-            // Use the first ticket's price if there are multiple
-            const ticketPrice = tickets[0].price || 0;
+          // Check if there are tickets for this event
+          if (tickets && tickets.length > 0) {
+            console.log(`Found ${tickets.length} tickets for event ${event.id}`);
+            debugInfo.tickets = tickets;
             
-            // Check if this is a free event (price is 0)
-            if (ticketPrice <= 0) {
-              console.log('Free event detected - no payment link needed');
+            // Check if the ticket has a valid price
+            const ticketPrice = tickets[0].price;
+            
+            // Only proceed if there's a valid price (not null, undefined, 0, or negative)
+            if (!ticketPrice || ticketPrice <= 0) {
+              console.log('Free event or no price detected - no payment link needed');
               isFreeEvent = true;
             } else {
               // Create a payment link using the ticket price and ticket details
               console.log(`Creating payment link for event ${event.name} with price $${ticketPrice}`);
               
-              // Prepare event object with all necessary details for the payment link
-              const eventWithPrice = { 
-                ...event, 
-                price: ticketPrice, 
-                // Create product name that includes both event name and ticket name
-                productName: tickets[0].name ? `${event.name} - ${tickets[0].name}` : `Ticket: ${event.name}`,
-                // Add any additional metadata needed for the ticket
-                ticketDescription: tickets[0].description || `Admission to ${event.name}`
-              };
-              
-              // Generate the Stripe payment link
-              ticketLink = await getOrCreateStripePaymentLink(env.STRIPE_SECRET_KEY, eventWithPrice);
-              stripeResponse = ticketLink;
-              
-              // Update the event in Notion with the new ticket link
-              if (ticketLink) {
-                await updateEventTicketLink(env.NOTION_TOKEN, event.id, ticketLink);
-                console.log(`Updated event ${event.id} with ticket link: ${ticketLink}`);
-                
-                // Make sure to update the event object with the ticket link
-                event.ticket_link = ticketLink;
+              // Verify we have all required data before proceeding
+              if (!event.name || !event.id) {
+                console.error('Missing required event data for payment link creation');
               } else {
-                console.error(`Failed to create payment link for event ${event.id}`);
+                // Prepare event object with all necessary details for the payment link
+                const eventWithPrice = { 
+                  ...event, 
+                  price: ticketPrice, 
+                  // Create product name that includes both event name and ticket name
+                  productName: tickets[0].name ? `${event.name} - ${tickets[0].name}` : `Ticket: ${event.name}`,
+                  // Add any additional metadata needed for the ticket
+                  ticketDescription: tickets[0].description || `Admission to ${event.name}`
+                };
+                
+                // Generate the Stripe payment link
+                ticketLink = await getOrCreateStripePaymentLink(env.STRIPE_SECRET_KEY, eventWithPrice);
+                stripeResponse = ticketLink;
+                
+                // Update the event in Notion with the new ticket link
+                if (ticketLink) {
+                  await updateEventTicketLink(env.NOTION_TOKEN, event.id, ticketLink);
+                  console.log(`Updated event ${event.id} with ticket link: ${ticketLink}`);
+                  
+                  // Make sure to update the event object with the ticket link
+                  event.ticket_link = ticketLink;
+                } else {
+                  console.error(`Failed to create payment link for event ${event.id}`);
+                }
               }
             }
           } else if (!ticketLink && (!tickets || tickets.length === 0)) {
