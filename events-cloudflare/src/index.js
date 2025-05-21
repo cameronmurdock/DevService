@@ -685,23 +685,37 @@ function renderEventPage(event, guestbookStatus = '') {
       .ticket-info {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
       }
       
-      .ticket-description {
-        font-style: italic;
+      .ticket-description-box {
+        background-color: #f3f4f6;
+        border-left: 3px solid #3b82f6;
+        padding: 0.75rem;
+        border-radius: 0.25rem;
         color: #4b5563;
+        font-size: 0.95rem;
+        line-height: 1.5;
         margin: 0.5rem 0;
+      }
+      
+      .ticket-prompt {
+        font-weight: 500;
+        margin: 0.75rem 0;
+        color: #1f2937;
       }
       
       .ticket-actions {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
       }
       
       .primary-button {
         background-color: #3b82f6;
+        margin-bottom: 0.25rem;
       }
       
       .view-link {
@@ -709,10 +723,18 @@ function renderEventPage(event, guestbookStatus = '') {
         color: #4b5563;
         text-decoration: underline;
         text-align: center;
+        padding: 0.25rem;
       }
       
       .view-link:hover {
         color: #3b82f6;
+      }
+      
+      .sidebar-card {
+        padding: 1.5rem;
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        word-break: break-word;
       }
       .form-group {
         margin-bottom: 1rem;

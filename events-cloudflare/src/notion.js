@@ -45,16 +45,25 @@ export async function getTicketsForEvent(token, productsDatabaseId, eventId) {
   }
   
   // Map the results to ticket objects
-  const tickets = (data.results || []).map(page => ({
-    id: page.id,
-    name: page.properties.Name?.title?.[0]?.plain_text || 'Untitled',
-    price: parseFloat(page.properties.Price?.number) || 0,
-    stripe_payment_link: page.properties['Stripe Payment Link']?.url || ''
-  }));
+  const tickets = (data.results || []).map(page => {
+    // Extract description from rich text if available
+    let description = '';
+    if (page.properties.Description?.rich_text && page.properties.Description.rich_text.length > 0) {
+      description = page.properties.Description.rich_text.map(text => text.plain_text).join('');
+    }
+    
+    return {
+      id: page.id,
+      name: page.properties.Name?.title?.[0]?.plain_text || 'Untitled',
+      price: parseFloat(page.properties.Price?.number) || 0,
+      stripe_payment_link: page.properties['Stripe Payment Link']?.url || '',
+      description: description
+    };
+  });
   
   // Log the mapped tickets for debugging
   console.log(`Found ${tickets.length} tickets for event ${eventId}:`, 
-    tickets.map(t => ({ name: t.name, price: t.price })));
+    tickets.map(t => ({ name: t.name, price: t.price, description: t.description })));
   
   return tickets;
 }

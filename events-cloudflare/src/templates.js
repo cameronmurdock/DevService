@@ -79,17 +79,18 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets
   }
   
   console.log('Rendering ticket registration section with link:', ticketLink);
+  console.log('Ticket description:', ticketDescription);
   
-  // Display ticket description if available
+  // Display ticket description if available - with more prominent styling
   const descriptionHtml = ticketDescription 
-    ? `<p class="ticket-description">${ticketDescription}</p>` 
+    ? `<div class="ticket-description-box">${ticketDescription}</div>` 
     : '';
     
   // Add both the registration button and a link to view the live page
   return `
     <div class="ticket-info">
       ${descriptionHtml}
-      <p>Secure your spot at this event!</p>
+      <p class="ticket-prompt">Secure your spot at this event!</p>
       <div class="ticket-actions">
         <a href="${ticketLink}" class="button primary-button" target="_blank">Register Now</a>
         <a href="${ticketLink}" class="view-link" target="_blank">View Payment Page</a>
