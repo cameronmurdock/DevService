@@ -245,6 +245,9 @@ export default {
               if (ticketLink) {
                 await updateEventTicketLink(env.NOTION_TOKEN, event.id, ticketLink);
                 console.log(`Updated event ${event.id} with ticket link: ${ticketLink}`);
+                
+                // Make sure to update the event object with the ticket link
+                event.ticket_link = ticketLink;
               }
             }
           } else if (!ticketLink && (!tickets || tickets.length === 0)) {
@@ -259,16 +262,26 @@ export default {
         // Check for guestbook status in URL parameters
         const guestbookStatus = url.searchParams.get('guestbook') || '';
         
+        // Make sure the event object has the correct ticket_link and isFreeEvent properties
+        // This ensures these properties are passed to the renderer
+        event.ticket_link = ticketLink;
+        event.isFreeEvent = isFreeEvent;
+        
+        // If we have tickets but no ticket link, set hasTickets to true
+        // This will be used for rendering
+        const hasTickets = debugInfo.tickets && debugInfo.tickets.length > 0;
+        event.hasTickets = hasTickets;
+        
         // Log the final event object being passed to the renderer
         console.log('Final event object for rendering:', {
           id: event.id,
           name: event.name,
-          ticket_link: ticketLink,
-          isFreeEvent: isFreeEvent,
-          hasTickets: debugInfo.tickets && debugInfo.tickets.length > 0
+          ticket_link: event.ticket_link,
+          isFreeEvent: event.isFreeEvent,
+          hasTickets: event.hasTickets
         });
         
-        return new Response(renderEventPage({ ...event, ticket_link: ticketLink, isFreeEvent }, guestbookStatus), { headers: { 'content-type': 'text/html' } });
+        return new Response(renderEventPage(event, guestbookStatus), { headers: { 'content-type': 'text/html' } });
       } catch (error) {
         return new Response(renderDebugPage('Error fetching event', {
           eventId,
@@ -704,7 +717,7 @@ function renderEventPage(event, guestbookStatus = '') {
         <div class="card">
           <div class="sidebar-card">
             <h2>Registration</h2>
-            ${renderTicketsSection(event.ticket_link, event.isFreeEvent)}
+            ${renderTicketsSection(event.ticket_link, event.isFreeEvent, event.hasTickets)}
           </div>
         </div>
         

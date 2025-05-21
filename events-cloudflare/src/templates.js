@@ -51,9 +51,9 @@ export function renderGuestbookSection(eventId, status = '') {
   `;
 }
 
-export function renderTicketsSection(ticketLink, isFreeEvent = false) {
+export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets = false) {
   // Log the inputs to the function for debugging
-  console.log('renderTicketsSection called with:', { ticketLink, isFreeEvent });
+  console.log('renderTicketsSection called with:', { ticketLink, isFreeEvent, hasTickets });
   
   if (isFreeEvent) {
     console.log('Rendering free event ticket section');
@@ -63,6 +63,14 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false) {
   }
   
   if (!ticketLink) {
+    if (hasTickets) {
+      console.log('Rendering tickets being prepared section');
+      return `
+        <p>Tickets for this event are being prepared.</p>
+        <p>Please check back soon to register.</p>
+      `;
+    }
+    
     console.log('Rendering no tickets available section');
     return `
       <p>No tickets available for this event at this time.</p>
