@@ -51,9 +51,9 @@ export function renderGuestbookSection(eventId, status = '') {
   `;
 }
 
-export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets = false) {
+export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets = false, ticketDescription = '') {
   // Log the inputs to the function for debugging
-  console.log('renderTicketsSection called with:', { ticketLink, isFreeEvent, hasTickets });
+  console.log('renderTicketsSection called with:', { ticketLink, isFreeEvent, hasTickets, ticketDescription });
   
   if (isFreeEvent) {
     console.log('Rendering free event ticket section');
@@ -79,8 +79,21 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets
   }
   
   console.log('Rendering ticket registration section with link:', ticketLink);
+  
+  // Display ticket description if available
+  const descriptionHtml = ticketDescription 
+    ? `<p class="ticket-description">${ticketDescription}</p>` 
+    : '';
+    
+  // Add both the registration button and a link to view the live page
   return `
-    <p>Secure your spot at this event!</p>
-    <a href="${ticketLink}" class="button" target="_blank">Register Now</a>
+    <div class="ticket-info">
+      ${descriptionHtml}
+      <p>Secure your spot at this event!</p>
+      <div class="ticket-actions">
+        <a href="${ticketLink}" class="button primary-button" target="_blank">Register Now</a>
+        <a href="${ticketLink}" class="view-link" target="_blank">View Payment Page</a>
+      </div>
+    </div>
   `;
 }

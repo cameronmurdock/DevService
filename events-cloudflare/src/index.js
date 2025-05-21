@@ -255,6 +255,9 @@ export default {
                   ticketDescription: tickets[0].description || `Admission to ${event.name}`
                 };
                 
+                // Store the ticket description in the event object for rendering
+                event.ticketDescription = tickets[0].description || `Admission to ${event.name}`;
+                
                 // Generate the Stripe payment link
                 ticketLink = await getOrCreateStripePaymentLink(env.STRIPE_SECRET_KEY, eventWithPrice);
                 stripeResponse = ticketLink;
@@ -678,6 +681,39 @@ function renderEventPage(event, guestbookStatus = '') {
       .button:hover {
         background-color: #2563eb;
       }
+      
+      .ticket-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      
+      .ticket-description {
+        font-style: italic;
+        color: #4b5563;
+        margin: 0.5rem 0;
+      }
+      
+      .ticket-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      
+      .primary-button {
+        background-color: #3b82f6;
+      }
+      
+      .view-link {
+        font-size: 0.875rem;
+        color: #4b5563;
+        text-decoration: underline;
+        text-align: center;
+      }
+      
+      .view-link:hover {
+        color: #3b82f6;
+      }
       .form-group {
         margin-bottom: 1rem;
       }
@@ -738,7 +774,7 @@ function renderEventPage(event, guestbookStatus = '') {
         <div class="card">
           <div class="sidebar-card">
             <h2>Registration</h2>
-            ${renderTicketsSection(event.ticket_link, event.isFreeEvent, event.hasTickets)}
+            ${renderTicketsSection(event.ticket_link, event.isFreeEvent, event.hasTickets, event.ticketDescription)}
           </div>
         </div>
         
