@@ -1,0 +1,26 @@
+# Ignore files with secrets and sensitive information
+wrangler.toml
+.env
+.dev.vars
+*.env.local
+
+# Ignore Wrangler local state
+.wrangler/
+
+# Ignore deployment scripts that might contain or generate secrets
+deploy_api.sh
+
+# Ignore Node.js dependencies
+node_modules/
+
+# Ignore logs
+*.log
+
+# Ignore build output
+dist/
+worker/
+.output/
+
+# Ignore OS specific files
+.DS_Store
+Thumbs.db

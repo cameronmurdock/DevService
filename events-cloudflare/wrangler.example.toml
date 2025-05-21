@@ -1,0 +1,20 @@
+name = "events-cloudflare"
+main = "src/index.js"
+compatibility_date = "2025-05-20"
+workers_dev = true
+# Route all paths on oneapp.gratis to this Worker
+route = "oneapp.gratis/*"
+# Zone ID for oneapp.gratis (from Cloudflare dashboard)
+zone_id = "7211e1f0bd3957cfe421d453a62ca73c"
+
+[vars]
+# Notion integration secret (from https://www.notion.so/my-integrations)
+NOTION_TOKEN = "your_notion_secret_token"
+# Notion Events database ID
+NOTION_DATABASE_ID = "your_events_database_id"
+# Notion People (guestbook) database ID
+NOTION_PEOPLE_DATABASE_ID = "your_people_database_id"
+# Notion Products (Tickets) database ID
+NOTION_PRODUCTS_DATABASE_ID = "your_products_database_id"
+# Stripe secret key (from https://dashboard.stripe.com/apikeys)
+STRIPE_SECRET_KEY = "your_stripe_secret_key"
