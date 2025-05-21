@@ -235,9 +235,19 @@ export default {
               console.log('Free event detected - no payment link needed');
               isFreeEvent = true;
             } else {
-              // Create a payment link using the ticket price
+              // Create a payment link using the ticket price and ticket details
               console.log(`Creating payment link for event ${event.name} with price $${ticketPrice}`);
-              const eventWithPrice = { ...event, price: ticketPrice, productName: tickets[0].name };
+              
+              // Prepare event object with all necessary details for the payment link
+              const eventWithPrice = { 
+                ...event, 
+                price: ticketPrice, 
+                productName: tickets[0].name || `Ticket: ${event.name}`,
+                // Add any additional metadata needed for the ticket
+                ticketDescription: tickets[0].description || `Admission to ${event.name}`
+              };
+              
+              // Generate the Stripe payment link
               ticketLink = await getOrCreateStripePaymentLink(env.STRIPE_SECRET_KEY, eventWithPrice);
               stripeResponse = ticketLink;
               
@@ -248,6 +258,8 @@ export default {
                 
                 // Make sure to update the event object with the ticket link
                 event.ticket_link = ticketLink;
+              } else {
+                console.error(`Failed to create payment link for event ${event.id}`);
               }
             }
           } else if (!ticketLink && (!tickets || tickets.length === 0)) {
