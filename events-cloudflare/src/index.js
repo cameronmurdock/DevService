@@ -227,7 +227,7 @@ export default {
           
           // Check if there are tickets for this event
           if (tickets && tickets.length > 0) {
-            console.log(`Found ${tickets.length} tickets for event ${event.id}`);
+            console.log(`Found ${tickets.length} tickets for event ${event.id}:`, JSON.stringify(tickets));
             debugInfo.tickets = tickets;
             
             // Store all available tickets in the event object for rendering
@@ -251,36 +251,77 @@ export default {
                 // Process each ticket that has a price
                 const ticketsWithLinks = [];
                 
+                // Log the tickets we're about to process
+                console.log('Processing tickets:', JSON.stringify(tickets.map(t => ({ 
+                  id: t.id, 
+                  name: t.name, 
+                  price: t.price, 
+                  description: t.description 
+                }))));
+                
                 for (const ticket of tickets) {
-                  // Skip tickets with no price or price <= 0
-                  if (!ticket.price || ticket.price <= 0) {
-                    console.log(`Skipping ticket ${ticket.name} with no price or price <= 0`);
+                  try {
+                    // Skip tickets with no price or price <= 0
+                    if (!ticket.price || ticket.price <= 0) {
+                      console.log(`Skipping ticket ${ticket.name} with no price or price <= 0`);
+                      ticketsWithLinks.push({
+                        ...ticket,
+                        isFree: true
+                      });
+                      continue;
+                    }
+                    
+                    // Check if the ticket already has a Stripe payment link
+                    if (ticket.stripe_payment_link) {
+                      console.log(`Using existing Stripe payment link for ticket ${ticket.name}: ${ticket.stripe_payment_link}`);
+                      ticketsWithLinks.push({
+                        ...ticket,
+                        ticket_link: ticket.stripe_payment_link,
+                        isFree: false
+                      });
+                      continue;
+                    }
+                    
+                    // Prepare event object with ticket details for the payment link
+                    const eventWithPrice = { 
+                      ...event, 
+                      price: ticket.price, 
+                      // Create product name that includes both event name and ticket name
+                      productName: ticket.name ? `${event.name} - ${ticket.name}` : `Ticket: ${event.name}`,
+                      // Add any additional metadata needed for the ticket
+                      ticketDescription: ticket.description || `Admission to ${event.name}`
+                    };
+                    
+                    console.log(`Creating payment link for ticket: ${ticket.name} with price: $${ticket.price}`);
+                    
+                    // Generate the Stripe payment link for this ticket
+                    const ticketLink = await getOrCreateStripePaymentLink(env.STRIPE_SECRET_KEY, eventWithPrice);
+                    
+                    if (!ticketLink) {
+                      console.error(`Failed to create payment link for ticket: ${ticket.name}`);
+                      ticketsWithLinks.push({
+                        ...ticket,
+                        isFree: false
+                      });
+                      continue;
+                    }
+                    
+                    console.log(`Successfully created payment link for ticket ${ticket.name}: ${ticketLink}`);
+                    
+                    // Add the ticket with its payment link to the array
                     ticketsWithLinks.push({
                       ...ticket,
-                      isFree: true
+                      ticket_link: ticketLink,
+                      isFree: false
                     });
-                    continue;
+                  } catch (error) {
+                    console.error(`Error processing ticket ${ticket.name}:`, error);
+                    // Still add the ticket to the array, but without a payment link
+                    ticketsWithLinks.push({
+                      ...ticket,
+                      isFree: false
+                    });
                   }
-                  
-                  // Prepare event object with ticket details for the payment link
-                  const eventWithPrice = { 
-                    ...event, 
-                    price: ticket.price, 
-                    // Create product name that includes both event name and ticket name
-                    productName: ticket.name ? `${event.name} - ${ticket.name}` : `Ticket: ${event.name}`,
-                    // Add any additional metadata needed for the ticket
-                    ticketDescription: ticket.description || `Admission to ${event.name}`
-                  };
-                  
-                  // Generate the Stripe payment link for this ticket
-                  const ticketLink = await getOrCreateStripePaymentLink(env.STRIPE_SECRET_KEY, eventWithPrice);
-                  
-                  // Add the ticket with its payment link to the array
-                  ticketsWithLinks.push({
-                    ...ticket,
-                    ticket_link: ticketLink,
-                    isFree: false
-                  });
                 }
                 
                 // Store the processed tickets in the event object
@@ -763,24 +804,45 @@ function renderEventPage(event, guestbookStatus = '') {
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
+        margin-top: 1rem;
       }
       
       .ticket-option {
         border: 1px solid #e5e7eb;
         border-radius: 0.5rem;
-        padding: 1rem;
-        transition: box-shadow 0.2s;
+        padding: 1.25rem;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
       }
       
       .ticket-option:hover {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1), 0 2px 6px -1px rgba(0, 0, 0, 0.06);
+        transform: translateY(-2px);
+      }
+      
+      .free-ticket {
+        border-left: 4px solid #10b981;
+        background-color: #f0fdf4;
+      }
+      
+      .pending-ticket {
+        border-left: 4px solid #f59e0b;
+        background-color: #fffbeb;
+      }
+      
+      .available-ticket {
+        border-left: 4px solid #3b82f6;
+        background-color: #f0f9ff;
       }
       
       .ticket-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.75rem;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 0.75rem;
       }
       
       .ticket-name {
@@ -793,10 +855,29 @@ function renderEventPage(event, guestbookStatus = '') {
       .ticket-price {
         font-weight: 600;
         color: #3b82f6;
+        font-size: 1.125rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        background-color: rgba(59, 130, 246, 0.1);
       }
       
       .ticket-price.free {
         color: #10b981;
+        background-color: rgba(16, 185, 129, 0.1);
+      }
+      
+      .ticket-status {
+        font-size: 0.95rem;
+        margin: 0.75rem 0 0;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        text-align: center;
+        background-color: #f3f4f6;
+      }
+      
+      .ticket-status.pending {
+        background-color: #fffbeb;
+        color: #92400e;
       }
       
       .sidebar-card {

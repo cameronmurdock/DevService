@@ -72,41 +72,50 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets
   // If there are multiple tickets with links, display them as options
   if (ticketsWithLinks && ticketsWithLinks.length > 0) {
     console.log('Rendering multiple ticket options:', ticketsWithLinks.length);
+    console.log('Ticket details:', JSON.stringify(ticketsWithLinks.map(t => ({
+      name: t.name,
+      price: t.price,
+      isFree: t.isFree,
+      hasLink: !!t.ticket_link,
+      description: t.description ? t.description.substring(0, 30) + '...' : 'No description'
+    }))));
     
     // Generate HTML for each ticket option
     const ticketOptionsHtml = ticketsWithLinks.map(ticket => {
-      // Skip tickets without links (they might be free or not ready)
+      // Handle free tickets
       if (ticket.isFree) {
         return `
-          <div class="ticket-option">
+          <div class="ticket-option free-ticket">
             <div class="ticket-header">
               <h3 class="ticket-name">${ticket.name || 'General Admission'}</h3>
               <span class="ticket-price free">Free</span>
             </div>
             ${ticket.description ? `<div class="ticket-description-box">${ticket.description}</div>` : ''}
-            <p>This ticket is free. No registration required.</p>
+            <p class="ticket-status">This ticket is free. No registration required.</p>
           </div>
         `;
       }
       
+      // Handle tickets without payment links
       if (!ticket.ticket_link) {
         return `
-          <div class="ticket-option">
+          <div class="ticket-option pending-ticket">
             <div class="ticket-header">
               <h3 class="ticket-name">${ticket.name || 'General Admission'}</h3>
-              <span class="ticket-price">$${ticket.price.toFixed(2)}</span>
+              <span class="ticket-price">$${parseFloat(ticket.price).toFixed(2)}</span>
             </div>
             ${ticket.description ? `<div class="ticket-description-box">${ticket.description}</div>` : ''}
-            <p>Tickets for this option are being prepared. Please check back soon.</p>
+            <p class="ticket-status pending">Tickets for this option are being prepared. Please check back soon.</p>
           </div>
         `;
       }
       
+      // Handle tickets with payment links
       return `
-        <div class="ticket-option">
+        <div class="ticket-option available-ticket">
           <div class="ticket-header">
             <h3 class="ticket-name">${ticket.name || 'General Admission'}</h3>
-            <span class="ticket-price">$${ticket.price.toFixed(2)}</span>
+            <span class="ticket-price">$${parseFloat(ticket.price).toFixed(2)}</span>
           </div>
           ${ticket.description ? `<div class="ticket-description-box">${ticket.description}</div>` : ''}
           <div class="ticket-actions">
