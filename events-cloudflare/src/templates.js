@@ -1,37 +1,72 @@
 // HTML templates for event page, tickets, and guestbook
 
-export function renderGuestbookSection(eventId) {
-  return `<section id="guestbook">
-    <h2>Guestbook</h2>
-    <form method="POST" action="/api/guestbook">
+export function renderGuestbookSection(eventId, status = '') {
+  // Handle different status messages
+  let statusMessage = '';
+  if (status === 'thanks') {
+    statusMessage = `<div class="success-message">Thanks for signing our guestbook!</div>`;
+  } else if (status === 'error') {
+    statusMessage = `<div class="error-message">Sorry, we couldn't process your submission. Please try again later.</div>`;
+  }
+  
+  return `
+    ${statusMessage}
+    <p>Sign our guestbook to receive updates about this and future events.</p>
+    <form method="POST" action="/api/guestbook" class="registration-form">
       <input type="hidden" name="eventId" value="${eventId}">
-      <label>Name:<br><input type="text" name="name" required></label><br>
-      <label>Email:<br><input type="email" name="email" required></label><br>
-      <label>Phone:<br><input type="tel" name="phone" pattern="[0-9+\- ]*" placeholder="Optional"></label><br>
-      <label>Contact Preference:<br>
-        <select name="contactPreference">
+      
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" class="form-control" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" class="form-control" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="phone">Phone (Optional)</label>
+        <input type="tel" id="phone" name="phone" pattern="[0-9+\- ]*" class="form-control" placeholder="Your phone number">
+      </div>
+      
+      <div class="form-group">
+        <label for="contactPreference">Contact Preference</label>
+        <select id="contactPreference" name="contactPreference" class="form-control">
           <option value="Share All Riverside Events With Me">Share All Riverside Events With Me</option>
           <option value="Share Similar Events With Me">Share Similar Events With Me</option>
           <option value="Do Not Contact">Do Not Contact</option>
         </select>
-      </label><br>
-      <label>Comment:<br><textarea name="comment" rows="3" placeholder="Optional"></textarea></label><br>
-      <button type="submit">Sign Guestbook</button>
+      </div>
+      
+      <div class="form-group">
+        <label for="message">Message</label>
+        <textarea id="message" name="message" class="form-control" rows="3" placeholder="Your message or comment"></textarea>
+      </div>
+      
+      <!-- Membership Type is set automatically to Guest -->
+      
+      <button type="submit" class="button">Sign Guestbook</button>
     </form>
-  </section>`;
+  `;
 }
 
-export function renderTicketsSection(ticketLink) {
-  if (!ticketLink) {
-    return `<section id="tickets">
-      <h2>Tickets</h2>
-      <p>Tickets are not available at this time.</p>
-    </section>`;
+export function renderTicketsSection(ticketLink, isFreeEvent = false) {
+  if (isFreeEvent) {
+    return `
+      <p>This is a free event. No registration required.</p>
+    `;
   }
-  return `<section id="tickets">
-    <h2>Tickets</h2>
-    <div class="ticket-action">
-      <a href="${ticketLink}" target="_blank" class="buy-btn">Buy Tickets</a>
-    </div>
-  </section>`;
+  
+  if (!ticketLink) {
+    return `
+      <p>No tickets available for this event at this time.</p>
+      <p>Check back later for registration details.</p>
+    `;
+  }
+  
+  return `
+    <p>Secure your spot at this event!</p>
+    <a href="${ticketLink}" class="button" target="_blank">Register Now</a>
+  `;
 }
