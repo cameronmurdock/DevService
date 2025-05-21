@@ -51,10 +51,17 @@ export function renderGuestbookSection(eventId, status = '') {
   `;
 }
 
-export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets = false, ticketDescription = '') {
+export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets = false, ticketDescription = '', ticketsWithLinks = []) {
   // Log the inputs to the function for debugging
-  console.log('renderTicketsSection called with:', { ticketLink, isFreeEvent, hasTickets, ticketDescription });
+  console.log('renderTicketsSection called with:', { 
+    ticketLink, 
+    isFreeEvent, 
+    hasTickets, 
+    ticketDescription,
+    ticketsCount: ticketsWithLinks ? ticketsWithLinks.length : 0 
+  });
   
+  // If it's a free event, show the free event message
   if (isFreeEvent) {
     console.log('Rendering free event ticket section');
     return `
@@ -62,6 +69,63 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets
     `;
   }
   
+  // If there are multiple tickets with links, display them as options
+  if (ticketsWithLinks && ticketsWithLinks.length > 0) {
+    console.log('Rendering multiple ticket options:', ticketsWithLinks.length);
+    
+    // Generate HTML for each ticket option
+    const ticketOptionsHtml = ticketsWithLinks.map(ticket => {
+      // Skip tickets without links (they might be free or not ready)
+      if (ticket.isFree) {
+        return `
+          <div class="ticket-option">
+            <div class="ticket-header">
+              <h3 class="ticket-name">${ticket.name || 'General Admission'}</h3>
+              <span class="ticket-price free">Free</span>
+            </div>
+            ${ticket.description ? `<div class="ticket-description-box">${ticket.description}</div>` : ''}
+            <p>This ticket is free. No registration required.</p>
+          </div>
+        `;
+      }
+      
+      if (!ticket.ticket_link) {
+        return `
+          <div class="ticket-option">
+            <div class="ticket-header">
+              <h3 class="ticket-name">${ticket.name || 'General Admission'}</h3>
+              <span class="ticket-price">$${ticket.price.toFixed(2)}</span>
+            </div>
+            ${ticket.description ? `<div class="ticket-description-box">${ticket.description}</div>` : ''}
+            <p>Tickets for this option are being prepared. Please check back soon.</p>
+          </div>
+        `;
+      }
+      
+      return `
+        <div class="ticket-option">
+          <div class="ticket-header">
+            <h3 class="ticket-name">${ticket.name || 'General Admission'}</h3>
+            <span class="ticket-price">$${ticket.price.toFixed(2)}</span>
+          </div>
+          ${ticket.description ? `<div class="ticket-description-box">${ticket.description}</div>` : ''}
+          <div class="ticket-actions">
+            <a href="${ticket.ticket_link}" class="button primary-button" target="_blank">Register Now</a>
+            <a href="${ticket.ticket_link}" class="view-link" target="_blank">View Payment Page</a>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    return `
+      <div class="ticket-options">
+        <p class="ticket-prompt">Select a ticket option:</p>
+        ${ticketOptionsHtml}
+      </div>
+    `;
+  }
+  
+  // Fall back to the original single ticket display if no multiple tickets are available
   if (!ticketLink) {
     if (hasTickets) {
       console.log('Rendering tickets being prepared section');
@@ -78,7 +142,7 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets
     `;
   }
   
-  console.log('Rendering ticket registration section with link:', ticketLink);
+  console.log('Rendering single ticket registration section with link:', ticketLink);
   console.log('Ticket description:', ticketDescription);
   
   // Display ticket description if available - with more prominent styling

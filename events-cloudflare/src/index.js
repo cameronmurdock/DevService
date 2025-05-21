@@ -230,47 +230,75 @@ export default {
             console.log(`Found ${tickets.length} tickets for event ${event.id}`);
             debugInfo.tickets = tickets;
             
-            // Check if the ticket has a valid price
-            const ticketPrice = tickets[0].price;
+            // Store all available tickets in the event object for rendering
+            event.tickets = tickets;
             
-            // Only proceed if there's a valid price (not null, undefined, 0, or negative)
-            if (!ticketPrice || ticketPrice <= 0) {
+            // Check if any ticket has a valid price
+            const hasValidPricedTicket = tickets.some(ticket => ticket.price && ticket.price > 0);
+            
+            // If all tickets are free, mark as a free event
+            if (!hasValidPricedTicket) {
               console.log('Free event or no price detected - no payment link needed');
               isFreeEvent = true;
             } else {
-              // Create a payment link using the ticket price and ticket details
-              console.log(`Creating payment link for event ${event.name} with price $${ticketPrice}`);
+              // Create payment links for tickets with prices
+              console.log(`Creating payment links for ${tickets.length} tickets for event ${event.name}`);
               
               // Verify we have all required data before proceeding
               if (!event.name || !event.id) {
                 console.error('Missing required event data for payment link creation');
               } else {
-                // Prepare event object with all necessary details for the payment link
-                const eventWithPrice = { 
-                  ...event, 
-                  price: ticketPrice, 
-                  // Create product name that includes both event name and ticket name
-                  productName: tickets[0].name ? `${event.name} - ${tickets[0].name}` : `Ticket: ${event.name}`,
-                  // Add any additional metadata needed for the ticket
-                  ticketDescription: tickets[0].description || `Admission to ${event.name}`
-                };
+                // Process each ticket that has a price
+                const ticketsWithLinks = [];
                 
-                // Store the ticket description in the event object for rendering
-                event.ticketDescription = tickets[0].description || `Admission to ${event.name}`;
+                for (const ticket of tickets) {
+                  // Skip tickets with no price or price <= 0
+                  if (!ticket.price || ticket.price <= 0) {
+                    console.log(`Skipping ticket ${ticket.name} with no price or price <= 0`);
+                    ticketsWithLinks.push({
+                      ...ticket,
+                      isFree: true
+                    });
+                    continue;
+                  }
+                  
+                  // Prepare event object with ticket details for the payment link
+                  const eventWithPrice = { 
+                    ...event, 
+                    price: ticket.price, 
+                    // Create product name that includes both event name and ticket name
+                    productName: ticket.name ? `${event.name} - ${ticket.name}` : `Ticket: ${event.name}`,
+                    // Add any additional metadata needed for the ticket
+                    ticketDescription: ticket.description || `Admission to ${event.name}`
+                  };
+                  
+                  // Generate the Stripe payment link for this ticket
+                  const ticketLink = await getOrCreateStripePaymentLink(env.STRIPE_SECRET_KEY, eventWithPrice);
+                  
+                  // Add the ticket with its payment link to the array
+                  ticketsWithLinks.push({
+                    ...ticket,
+                    ticket_link: ticketLink,
+                    isFree: false
+                  });
+                }
                 
-                // Generate the Stripe payment link
-                ticketLink = await getOrCreateStripePaymentLink(env.STRIPE_SECRET_KEY, eventWithPrice);
-                stripeResponse = ticketLink;
+                // Store the processed tickets in the event object
+                event.ticketsWithLinks = ticketsWithLinks;
                 
-                // Update the event in Notion with the new ticket link
-                if (ticketLink) {
+                // For backward compatibility, use the first ticket's link as the main ticket link
+                if (ticketsWithLinks.length > 0 && ticketsWithLinks[0].ticket_link) {
+                  ticketLink = ticketsWithLinks[0].ticket_link;
+                  stripeResponse = ticketLink;
+                  
+                  // Update the event in Notion with the first ticket's link
                   await updateEventTicketLink(env.NOTION_TOKEN, event.id, ticketLink);
                   console.log(`Updated event ${event.id} with ticket link: ${ticketLink}`);
                   
                   // Make sure to update the event object with the ticket link
                   event.ticket_link = ticketLink;
                 } else {
-                  console.error(`Failed to create payment link for event ${event.id}`);
+                  console.log(`No payment links created for event ${event.id}`);
                 }
               }
             }
@@ -730,6 +758,47 @@ function renderEventPage(event, guestbookStatus = '') {
         color: #3b82f6;
       }
       
+      /* Ticket options styles */
+      .ticket-options {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+      
+      .ticket-option {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        transition: box-shadow 0.2s;
+      }
+      
+      .ticket-option:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+      
+      .ticket-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+      }
+      
+      .ticket-name {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0;
+        color: #1f2937;
+      }
+      
+      .ticket-price {
+        font-weight: 600;
+        color: #3b82f6;
+      }
+      
+      .ticket-price.free {
+        color: #10b981;
+      }
+      
       .sidebar-card {
         padding: 1.5rem;
         overflow-wrap: break-word;
@@ -796,7 +865,7 @@ function renderEventPage(event, guestbookStatus = '') {
         <div class="card">
           <div class="sidebar-card">
             <h2>Registration</h2>
-            ${renderTicketsSection(event.ticket_link, event.isFreeEvent, event.hasTickets, event.ticketDescription)}
+            ${renderTicketsSection(event.ticket_link, event.isFreeEvent, event.hasTickets, event.ticketDescription, event.ticketsWithLinks)}
           </div>
         </div>
         
