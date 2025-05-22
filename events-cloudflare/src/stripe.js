@@ -112,11 +112,7 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
       
       // Use supported parameters for Stripe Payment Links
       'allow_promotion_codes': 'true',
-      'shipping_address_collection[allowed_countries][]': 'US',
       'phone_number_collection[enabled]': 'true',
-      
-      // Add event details to the payment description
-      'custom_text[shipping_address][message]': `Event details: ${event.name}${event.date ? ' on ' + event.date : ''}`,
       
       // Enable email receipts using payment_intent_data
       'payment_intent_data[description]': `Ticket for ${event.name}${event.date ? ' on ' + event.date : ''}`,
