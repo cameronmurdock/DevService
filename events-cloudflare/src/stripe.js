@@ -110,10 +110,14 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
       'customer_creation': 'always',  // Always create a customer to capture buyer info
       'submit_type': 'pay',
       
-      // Enable email receipts with enhanced settings
-      'invoice_creation[enabled]': 'true',
-      'invoice_creation[invoice_data][description]': `Ticket purchase for ${event.name}`,
-      'invoice_creation[invoice_data][footer]': `Thank you for your purchase! Visit ${eventPageUrl} for event details.`,
+      // Use Stripe Checkout for better email handling
+      'ui_mode': 'hosted',
+      'allow_promotion_codes': 'true',
+      'shipping_address_collection[allowed_countries][]': 'US',
+      'phone_number_collection[enabled]': 'true',
+      'customer_email_collection': 'always',
+      'custom_text[shipping_address][message]': `Event details: ${event.name}${event.date ? ' on ' + event.date : ''}`,
+      'send_email_receipt': 'true',
       
       // Metadata to track the event and revenue object
       'metadata[event_id]': event.id,
