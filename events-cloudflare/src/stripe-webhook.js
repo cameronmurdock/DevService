@@ -1,5 +1,4 @@
 // Stripe webhook handler for processing payment events
-import { Client } from '@notionhq/client';
 
 /**
  * Process a Stripe webhook event
@@ -23,15 +22,12 @@ export async function handleStripeWebhook(event, env) {
   }
   
   try {
-    // Initialize Notion client
-    const notion = new Client({ auth: env.NOTION_TOKEN });
-    
     // Get customer information for the buyer
     const customer = await getStripeCustomer(session.customer, env.STRIPE_SECRET_KEY);
     
     // Create a Revenue object in Notion using the database ID from environment variables
     const revenuePage = await createRevenueObject(
-      notion, 
+      env.NOTION_TOKEN,
       env.NOTION_REVENUE_DATABASE_ID,
       session,
       customer
@@ -84,13 +80,13 @@ async function getStripeCustomer(customerId, stripeSecretKey) {
 
 /**
  * Create a Revenue object in Notion
- * @param {Object} notion - Notion client
+ * @param {string} notionToken - Notion API token
  * @param {string} databaseId - Notion Revenue database ID
  * @param {Object} session - Stripe checkout session
  * @param {Object} customer - Stripe customer data
  * @returns {Promise<Object>} - Created Notion page
  */
-async function createRevenueObject(notion, databaseId, session, customer) {
+async function createRevenueObject(notionToken, databaseId, session, customer) {
   // Use the revenue name from metadata or generate a timestamp
   const revenueName = session.metadata.revenue_name || new Date().toLocaleString();
   
@@ -155,12 +151,27 @@ async function createRevenueObject(notion, databaseId, session, customer) {
     }
   }
   
-  // Create the Revenue object in Notion
-  const response = await notion.pages.create({
-    parent: { database_id: databaseId },
-    properties: properties
+  // Create the Revenue object in Notion using fetch API
+  const response = await fetch(`https://api.notion.com/v1/pages`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${notionToken}`,
+      'Content-Type': 'application/json',
+      'Notion-Version': '2022-06-28'
+    },
+    body: JSON.stringify({
+      parent: { database_id: databaseId },
+      properties: properties
+    })
   });
   
-  console.log(`Created Revenue object: ${response.id}`);
-  return response;
+  const data = await response.json();
+  
+  if (!response.ok) {
+    console.error('Error creating Revenue object:', data);
+    throw new Error(`Failed to create Revenue object: ${data.message || 'Unknown error'}`);
+  }
+  
+  console.log(`Created Revenue object: ${data.id}`);
+  return data;
 }
