@@ -277,6 +277,7 @@ export default {
                       ticketsWithLinks.push({
                         ...ticket,
                         ticket_link: ticket.stripe_payment_link,
+                        stripe_payment_link: ticket.stripe_payment_link, // Ensure both properties are set
                         isFree: false
                       });
                       continue;
@@ -407,6 +408,20 @@ export default {
         // This will be used for rendering
         const hasTickets = debugInfo.tickets && debugInfo.tickets.length > 0;
         event.hasTickets = hasTickets;
+        
+        // Force update the ticketsWithLinks array to ensure all tickets have proper payment links
+        if (event.ticketsWithLinks && event.ticketsWithLinks.length > 0) {
+          event.ticketsWithLinks = event.ticketsWithLinks.map(ticket => {
+            // If the ticket has a stripe_payment_link but no ticket_link, use the stripe_payment_link
+            if (ticket.stripe_payment_link && !ticket.ticket_link) {
+              return {
+                ...ticket,
+                ticket_link: ticket.stripe_payment_link
+              };
+            }
+            return ticket;
+          });
+        }
         
         // Make sure ticketsWithLinks is properly set on the event object
         // If it's not set but we have tickets, create an empty array

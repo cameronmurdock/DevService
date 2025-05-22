@@ -85,6 +85,11 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets
     const ticketOptionsHtml = ticketsWithLinks.map(ticket => {
       console.log(`Processing ticket for UI: ${ticket.name}, price: ${ticket.price}, hasLink: ${!!ticket.ticket_link}, stripeLink: ${!!ticket.stripe_payment_link}`);
       
+      // Force Stripe links to be used if they exist in Notion
+      if (ticket.stripe_payment_link && !ticket.ticket_link) {
+        ticket.ticket_link = ticket.stripe_payment_link;
+      }
+      
       // Handle free tickets
       if (ticket.isFree) {
         return `
@@ -101,6 +106,9 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets
       
       // Determine the payment link - check both ticket_link and stripe_payment_link
       const paymentLink = ticket.ticket_link || ticket.stripe_payment_link;
+      
+      // Log the payment link for debugging
+      console.log(`Payment link for ticket ${ticket.name}: ${paymentLink || 'NONE'}`);
       
       // Handle tickets without payment links
       if (!paymentLink) {
