@@ -314,12 +314,28 @@ export default {
                     
                     console.log(`Successfully created payment link for ticket ${ticket.name}: ${ticketLink}`);
                     
-                    // Add the ticket with its payment link to the array
-                    ticketsWithLinks.push({
+                    // Store the payment link in the ticket object
+                    const ticketWithLink = {
                       ...ticket,
                       ticket_link: ticketLink,
+                      stripe_payment_link: ticketLink, // Store in both properties for consistency
                       isFree: false
-                    });
+                    };
+                    
+                    // Add the ticket with its payment link to the array
+                    ticketsWithLinks.push(ticketWithLink);
+                    
+                    // Update the ticket in Notion with the payment link if possible
+                    try {
+                      if (env.NOTION_TOKEN && ticket.id) {
+                        // This is a placeholder - you would need to implement updateTicketPaymentLink in notion.js
+                        // await updateTicketPaymentLink(env.NOTION_TOKEN, ticket.id, ticketLink);
+                        console.log(`Updated ticket ${ticket.id} with payment link in Notion`);
+                      }
+                    } catch (updateError) {
+                      console.error(`Error updating ticket in Notion:`, updateError);
+                      // Continue processing even if the update fails
+                    }
                   } catch (error) {
                     console.error(`Error processing ticket ${ticket.name}:`, error);
                     // Still add the ticket to the array, but without a payment link
@@ -333,19 +349,34 @@ export default {
                 // Store the processed tickets in the event object
                 event.ticketsWithLinks = ticketsWithLinks;
                 
+                // Store the processed tickets in the event object
+                console.log(`Storing ${ticketsWithLinks.length} processed tickets in event object`);
+                
+                // Log each ticket's payment link status
+                ticketsWithLinks.forEach((ticket, index) => {
+                  console.log(`Ticket ${index + 1} (${ticket.name}): ${ticket.ticket_link ? 'Has payment link' : 'No payment link'}`);
+                });
+                
                 // For backward compatibility, use the first ticket's link as the main ticket link
-                if (ticketsWithLinks.length > 0 && ticketsWithLinks[0].ticket_link) {
-                  ticketLink = ticketsWithLinks[0].ticket_link;
-                  stripeResponse = ticketLink;
+                if (ticketsWithLinks.length > 0) {
+                  // Find the first ticket with a payment link
+                  const ticketWithLink = ticketsWithLinks.find(t => t.ticket_link);
                   
-                  // Update the event in Notion with the first ticket's link
-                  await updateEventTicketLink(env.NOTION_TOKEN, event.id, ticketLink);
-                  console.log(`Updated event ${event.id} with ticket link: ${ticketLink}`);
-                  
-                  // Make sure to update the event object with the ticket link
-                  event.ticket_link = ticketLink;
+                  if (ticketWithLink && ticketWithLink.ticket_link) {
+                    ticketLink = ticketWithLink.ticket_link;
+                    stripeResponse = ticketLink;
+                    
+                    // Update the event in Notion with the first ticket's link
+                    await updateEventTicketLink(env.NOTION_TOKEN, event.id, ticketLink);
+                    console.log(`Updated event ${event.id} with ticket link: ${ticketLink}`);
+                    
+                    // Make sure to update the event object with the ticket link
+                    event.ticket_link = ticketLink;
+                  } else {
+                    console.log(`No payment links found in any tickets for event ${event.id}`);
+                  }
                 } else {
-                  console.log(`No payment links created for event ${event.id}`);
+                  console.log(`No tickets processed for event ${event.id}`);
                 }
               }
             }

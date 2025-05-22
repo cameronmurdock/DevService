@@ -77,12 +77,13 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets
       price: t.price,
       isFree: t.isFree,
       hasLink: !!t.ticket_link,
+      stripe_link: t.stripe_payment_link,
       description: t.description ? t.description.substring(0, 30) + '...' : 'No description'
     }))));
     
     // Generate HTML for each ticket option
     const ticketOptionsHtml = ticketsWithLinks.map(ticket => {
-      console.log(`Processing ticket for UI: ${ticket.name}, price: ${ticket.price}, hasLink: ${!!ticket.ticket_link}`);
+      console.log(`Processing ticket for UI: ${ticket.name}, price: ${ticket.price}, hasLink: ${!!ticket.ticket_link}, stripeLink: ${!!ticket.stripe_payment_link}`);
       
       // Handle free tickets
       if (ticket.isFree) {
@@ -98,8 +99,11 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets
         `;
       }
       
+      // Determine the payment link - check both ticket_link and stripe_payment_link
+      const paymentLink = ticket.ticket_link || ticket.stripe_payment_link;
+      
       // Handle tickets without payment links
-      if (!ticket.ticket_link) {
+      if (!paymentLink) {
         return `
           <div class="ticket-option pending-ticket">
             <div class="ticket-header">
@@ -113,6 +117,8 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets
       }
       
       // Handle tickets with payment links
+      console.log(`Using payment link for ticket ${ticket.name}: ${paymentLink}`);
+      
       return `
         <div class="ticket-option available-ticket">
           <div class="ticket-header">
@@ -137,8 +143,8 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets
             </div>
           </div>
           <div class="ticket-actions">
-            <a href="${ticket.ticket_link}" class="button primary-button" target="_blank">Register Now</a>
-            <a href="${ticket.ticket_link}" class="view-link" target="_blank">View Payment Page</a>
+            <a href="${paymentLink}" class="button primary-button" target="_blank">Register Now</a>
+            <a href="${paymentLink}" class="view-link" target="_blank">View Payment Page</a>
           </div>
         </div>
       `;
