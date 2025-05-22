@@ -108,9 +108,6 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
       'invoice_creation[invoice_data][description]': `Ticket purchase for ${event.name}`,
       'invoice_creation[invoice_data][footer]': `Thank you for your purchase! Visit ${eventPageUrl} for event details.`,
       
-      // Custom receipt email settings
-      'custom_text[receipt]': `Thank you for purchasing tickets to ${event.name}! Visit ${eventPageUrl} for event details and updates.`,
-      
       // Metadata to track the event
       'metadata[event_id]': event.id,
       'metadata[event_name]': event.name,
@@ -120,7 +117,6 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
     // Add any additional event details to the metadata if available
     if (event.date) {
       paymentLinkParams['metadata[event_date]'] = event.date;
-      paymentLinkParams['custom_text[receipt]'] += ` The event is scheduled for ${event.date}.`;
     }
     
     if (event.location) {
@@ -139,7 +135,8 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
     const data = await res.json();
     
     if (data.error) {
-      console.error('Error creating payment link:', data.error);
+      console.error('Error creating payment link:', JSON.stringify(data.error));
+      console.error('Payment link parameters:', JSON.stringify(paymentLinkParams));
       return null;
     }
     
