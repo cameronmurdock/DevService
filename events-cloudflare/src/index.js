@@ -241,8 +241,8 @@ export default {
               console.log('Free event or no price detected - no payment link needed');
               isFreeEvent = true;
             } else {
-              // Create payment links for tickets with prices
-              console.log(`Creating payment links for ${tickets.length} tickets for event ${event.name}`);
+              // Process tickets with prices - only create payment links if they don't already exist
+              console.log(`Processing ${tickets.length} tickets for event ${event.name}`);
               
               // Verify we have all required data before proceeding
               if (!event.name || !event.id) {
@@ -282,6 +282,11 @@ export default {
                       continue;
                     }
                     
+                    // Check if we need to create a new payment link
+                    // Only create a new payment link if the ticket doesn't already have one
+                    // and it hasn't been created in this session
+                    console.log(`Checking if we need to create a payment link for ticket: ${ticket.name} with price: $${ticket.price}`);
+                    
                     // Prepare event object with ticket details for the payment link
                     const eventWithPrice = { 
                       ...event, 
@@ -295,12 +300,13 @@ export default {
                       // Format date for receipts if available
                       date: event.date ? formatDate(event.date) : undefined,
                       // Include location information if available
-                      location: event.location || event.venue || undefined
+                      location: event.location || event.venue || undefined,
+                      // Pass the existing stripe payment link if available
+                      stripe_payment_link: ticket.stripe_payment_link
                     };
                     
-                    console.log(`Creating payment link for ticket: ${ticket.name} with price: $${ticket.price}`);
-                    
                     // Generate the Stripe payment link for this ticket
+                    // This will use existing links if available and only create new ones if needed
                     const ticketLink = await getOrCreateStripePaymentLink(env.STRIPE_SECRET_KEY, eventWithPrice);
                     
                     if (!ticketLink) {

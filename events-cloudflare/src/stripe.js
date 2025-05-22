@@ -6,11 +6,32 @@
  * @param {object} event - Event object with price and name
  * @returns {Promise<string>} - Payment link URL
  */
+// Cache for payment links to avoid creating duplicates in a single session
+const paymentLinkCache = new Map();
+
 export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
-  // If event already has a payment link, return it
+  // Generate a cache key based on event ID and ticket name/price
+  const cacheKey = `${event.id}_${event.productName}_${event.price}`;
+  
+  // Check if we already have a payment link for this event/ticket in the cache
+  if (paymentLinkCache.has(cacheKey)) {
+    const cachedLink = paymentLinkCache.get(cacheKey);
+    console.log(`Using cached payment link for ${event.productName}: ${cachedLink}`);
+    return cachedLink;
+  }
+  
+  // If event already has a payment link, use it and cache it
   if (event.ticket_link) {
     console.log(`Using existing payment link for event ${event.name}: ${event.ticket_link}`);
+    paymentLinkCache.set(cacheKey, event.ticket_link);
     return event.ticket_link;
+  }
+  
+  // If the ticket already has a Stripe payment link, use it
+  if (event.stripe_payment_link) {
+    console.log(`Using existing Stripe payment link for ticket: ${event.stripe_payment_link}`);
+    paymentLinkCache.set(cacheKey, event.stripe_payment_link);
+    return event.stripe_payment_link;
   }
 
   try {
@@ -123,6 +144,10 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
     }
     
     console.log(`Successfully created payment link: ${data.url}`);
+    
+    // Cache the payment link to avoid creating duplicates
+    paymentLinkCache.set(cacheKey, data.url);
+    
     return data.url;
   } catch (error) {
     console.error('Error in getOrCreateStripePaymentLink:', error);
