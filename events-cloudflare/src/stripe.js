@@ -110,14 +110,19 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
       'customer_creation': 'always',  // Always create a customer to capture buyer info
       'submit_type': 'pay',
       
-      // Use Stripe Checkout for better email handling
-      'ui_mode': 'hosted',
+      // Use supported parameters for Stripe Payment Links
       'allow_promotion_codes': 'true',
       'shipping_address_collection[allowed_countries][]': 'US',
       'phone_number_collection[enabled]': 'true',
-      'customer_email_collection': 'always',
+      
+      // Add event details to the payment description
       'custom_text[shipping_address][message]': `Event details: ${event.name}${event.date ? ' on ' + event.date : ''}`,
-      'send_email_receipt': 'true',
+      
+      // Enable email receipts using payment_intent_data
+      'payment_intent_data[description]': `Ticket for ${event.name}${event.date ? ' on ' + event.date : ''}`,
+      'payment_intent_data[statement_descriptor]': 'TICKET',
+      'payment_intent_data[metadata][event_id]': event.id,
+      'payment_intent_data[metadata][event_name]': event.name,
       
       // Metadata to track the event and revenue object
       'metadata[event_id]': event.id,
