@@ -35,55 +35,148 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
   }
 
   try {
-    console.log(`Creating new payment link for event ${event.name} with price $${event.price}`);
+    console.log(`Checking for existing payment link for event ${event.name} with price $${event.price}`);
     
     // Format the event name for the product - include both event name and ticket name
     const productName = event.productName || `Ticket: ${event.name}`;
     
-    // First, create a product for this event
-    console.log('Creating Stripe product for the event ticket');
-    const productRes = await fetch('https://api.stripe.com/v1/products', {
-      method: 'POST',
+    // First, check if a product already exists for this event and ticket
+    console.log('Checking for existing Stripe products for this event ticket');
+    const searchRes = await fetch(`https://api.stripe.com/v1/products?limit=100`, {
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${stripeSecretKey}`,
         'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-        'name': productName,
-        'description': event.ticketDescription || `Admission to ${event.name}`,
-        'metadata[event_id]': event.id
-      })
+      }
     });
     
-    const productData = await productRes.json();
-    if (productData.error) {
-      console.error('Error creating product:', productData.error);
-      return null;
+    const searchData = await searchRes.json();
+    let existingProduct = null;
+    
+    // Look for a product with matching event ID in metadata
+    if (searchData.data && searchData.data.length > 0) {
+      existingProduct = searchData.data.find(product => 
+        product.metadata && 
+        product.metadata.event_id === event.id && 
+        product.name === productName
+      );
     }
     
-    // Then create a price for the product
-    console.log('Creating Stripe price for the product');
-    const priceRes = await fetch('https://api.stripe.com/v1/prices', {
-      method: 'POST',
+    let productData;
+    
+    if (existingProduct) {
+      console.log(`Found existing product for event ${event.name}: ${existingProduct.id}`);
+      productData = existingProduct;
+    } else {
+      // Create a new product if no existing product was found
+      console.log('Creating new Stripe product for the event ticket');
+      const productRes = await fetch('https://api.stripe.com/v1/products', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${stripeSecretKey}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+          'name': productName,
+          'description': event.ticketDescription || `Admission to ${event.name}`,
+          'metadata[event_id]': event.id
+        })
+      });
+      
+      productData = await productRes.json();
+      if (productData.error) {
+        console.error('Error creating product:', productData.error);
+        return null;
+      }
+    }
+    
+    // Note: productData is already declared above
+    
+    // Check if a price already exists for this product
+    console.log('Checking for existing price for the product');
+    const priceSearchRes = await fetch(`https://api.stripe.com/v1/prices?product=${productData.id}&limit=100`, {
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${stripeSecretKey}`,
         'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-        'product': productData.id,
-        'unit_amount': Math.round((event.price || 0) * 100),
-        'currency': 'usd'
-      })
+      }
     });
     
-    const priceData = await priceRes.json();
-    if (priceData.error) {
-      console.error('Error creating price:', priceData.error);
-      return null;
+    const priceSearchData = await priceSearchRes.json();
+    let priceData;
+    
+    // Look for a price with matching amount
+    const targetAmount = Math.round((event.price || 0) * 100);
+    if (priceSearchData.data && priceSearchData.data.length > 0) {
+      const existingPrice = priceSearchData.data.find(price => 
+        price.unit_amount === targetAmount && 
+        price.currency === 'usd' && 
+        price.active === true
+      );
+      
+      if (existingPrice) {
+        console.log(`Found existing price for product ${productData.id}: ${existingPrice.id}`);
+        priceData = existingPrice;
+      }
     }
     
-    // Now create the payment link with the price ID
-    console.log('Creating payment link with the price');
+    // Create a new price if no existing price was found
+    if (!priceData) {
+      console.log('Creating new Stripe price for the product');
+      const priceRes = await fetch('https://api.stripe.com/v1/prices', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${stripeSecretKey}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+          'product': productData.id,
+          'unit_amount': targetAmount,
+          'currency': 'usd'
+        })
+      });
+      
+      priceData = await priceRes.json();
+      if (priceData.error) {
+        console.error('Error creating price:', priceData.error);
+        return null;
+      }
+    }
+    
+    // Check if a payment link already exists for this price
+    console.log('Checking for existing payment links for this price');
+    const paymentLinkSearchRes = await fetch(`https://api.stripe.com/v1/payment_links?limit=100`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${stripeSecretKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+    
+    const paymentLinkSearchData = await paymentLinkSearchRes.json();
+    let existingPaymentLink = null;
+    
+    // Look for a payment link with matching price ID
+    if (paymentLinkSearchData.data && paymentLinkSearchData.data.length > 0) {
+      existingPaymentLink = paymentLinkSearchData.data.find(link => {
+        // Check if this link has our price ID
+        if (link.line_items && link.line_items.data && link.line_items.data.length > 0) {
+          return link.line_items.data.some(item => 
+            item.price && item.price.id === priceData.id
+          );
+        }
+        return false;
+      });
+    }
+    
+    if (existingPaymentLink) {
+      console.log(`Found existing payment link for price ${priceData.id}: ${existingPaymentLink.url}`);
+      paymentLinkCache.set(cacheKey, existingPaymentLink.url);
+      return existingPaymentLink.url;
+    }
+    
+    // Create a new payment link if no existing one was found
+    console.log('Creating new payment link with the price');
     
     // Prepare the URL to the event page for the receipt and after-payment redirect
     const eventPageUrl = event.url || `https://oneapp.gratis/events/${event.id}`;
