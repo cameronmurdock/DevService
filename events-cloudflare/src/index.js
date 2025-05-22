@@ -365,16 +365,45 @@ export default {
         const hasTickets = debugInfo.tickets && debugInfo.tickets.length > 0;
         event.hasTickets = hasTickets;
         
+        // Make sure ticketsWithLinks is properly set on the event object
+        // If it's not set but we have tickets, create an empty array
+        if (!event.ticketsWithLinks && hasTickets) {
+          console.log('No ticketsWithLinks found on event object, but tickets exist. Creating empty array.');
+          event.ticketsWithLinks = [];
+        }
+        
+        // Log the ticketsWithLinks array for debugging
+        if (event.ticketsWithLinks) {
+          console.log(`Event has ${event.ticketsWithLinks.length} tickets with links:`, 
+            JSON.stringify(event.ticketsWithLinks.map(t => ({
+              name: t.name,
+              price: t.price,
+              hasLink: !!t.ticket_link
+            }))));
+        }
+        
         // Log the final event object being passed to the renderer
         console.log('Final event object for rendering:', {
           id: event.id,
           name: event.name,
           ticket_link: event.ticket_link,
           isFreeEvent: event.isFreeEvent,
-          hasTickets: event.hasTickets
+          hasTickets: event.hasTickets,
+          ticketsWithLinks: event.ticketsWithLinks ? event.ticketsWithLinks.length : 0
         });
         
-        return new Response(renderEventPage(event, guestbookStatus), { headers: { 'content-type': 'text/html' } });
+        // Create a deep copy of the event object to avoid reference issues
+        const eventForRendering = JSON.parse(JSON.stringify(event));
+        
+        // Log the ticketsWithLinks array that will be passed to the template
+        if (eventForRendering.ticketsWithLinks && eventForRendering.ticketsWithLinks.length > 0) {
+          console.log(`Passing ${eventForRendering.ticketsWithLinks.length} tickets to template:`, 
+            JSON.stringify(eventForRendering.ticketsWithLinks));
+        } else {
+          console.warn('No tickets with links to pass to template');
+        }
+        
+        return new Response(renderEventPage(eventForRendering, guestbookStatus), { headers: { 'content-type': 'text/html' } });
       } catch (error) {
         return new Response(renderDebugPage('Error fetching event', {
           eventId,

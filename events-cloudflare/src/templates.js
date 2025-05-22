@@ -82,6 +82,8 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets
     
     // Generate HTML for each ticket option
     const ticketOptionsHtml = ticketsWithLinks.map(ticket => {
+      console.log(`Processing ticket for UI: ${ticket.name}, price: ${ticket.price}, hasLink: ${!!ticket.ticket_link}`);
+      
       // Handle free tickets
       if (ticket.isFree) {
         return `
@@ -125,6 +127,17 @@ export function renderTicketsSection(ticketLink, isFreeEvent = false, hasTickets
         </div>
       `;
     }).join('');
+    
+    console.log(`Generated HTML for ${ticketsWithLinks.length} ticket options`);
+    
+    // Make sure we have HTML content to display
+    if (!ticketOptionsHtml || ticketOptionsHtml.trim() === '') {
+      console.log('No ticket options HTML generated despite having tickets');
+      return `
+        <p>Tickets for this event are being prepared.</p>
+        <p>Please check back soon to register.</p>
+      `;
+    }
     
     return `
       <div class="ticket-options">
