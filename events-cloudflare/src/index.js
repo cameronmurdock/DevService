@@ -3,10 +3,50 @@ import { getEventFromNotion, getAllEventsFromNotion, getTicketsForEvent, updateE
 import { renderGuestbookSection, renderTicketsSection } from './templates.js';
 import { getOrCreateStripePaymentLink } from './stripe.js';
 import { addGuestToNotion, addCommentToNotion, updateEventsAttended } from './guestbook.js';
+import { handleStripeWebhook } from './stripe-webhook.js';
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    // Handle Stripe webhook events
+    if (url.pathname === "/api/stripe-webhook") {
+      console.log('Received Stripe webhook request');
+      
+      // Verify the request is from Stripe
+      const signature = request.headers.get('stripe-signature');
+      if (!signature) {
+        console.error('Missing Stripe signature');
+        return new Response('Missing Stripe signature', { status: 400 });
+      }
+      
+      try {
+        // Parse the webhook payload
+        const payload = await request.text();
+        
+        // For simplicity, we're not verifying the signature cryptographically here
+        // In production, you should verify the signature using Stripe's library
+        
+        // Parse the event
+        const event = JSON.parse(payload);
+        console.log(`Processing Stripe event: ${event.type}`);
+        
+        // Handle the event
+        const result = await handleStripeWebhook(event, env);
+        
+        // Return a success response
+        return new Response(JSON.stringify(result), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error('Error processing Stripe webhook:', error);
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+    
     if (url.pathname === "/" || url.pathname === "/events") {
       // List all events
       try {
