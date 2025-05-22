@@ -106,14 +106,13 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
       // Payment link settings
       'after_completion[type]': 'redirect',
       'after_completion[redirect][url]': eventPageUrl,  // Redirect back to event page
-      'billing_address_collection': 'never',  // Don't collect billing address
+      'billing_address_collection': 'auto',  // Use auto instead of never (only auto or required are valid)
       'customer_creation': 'always',  // Always create a customer to capture buyer info
       'submit_type': 'pay',
       
       // Use supported parameters for Stripe Payment Links
       'allow_promotion_codes': 'true',
       'phone_number_collection[enabled]': 'true',
-      'shipping_address_collection': null,  // Explicitly disable shipping address collection
       
       // Enable email receipts using payment_intent_data
       'payment_intent_data[description]': `Ticket for ${event.name}${event.date ? ' on ' + event.date : ''}`,
