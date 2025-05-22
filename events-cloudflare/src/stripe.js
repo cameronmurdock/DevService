@@ -88,6 +88,12 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
     // Prepare the URL to the event page for the receipt and after-payment redirect
     const eventPageUrl = event.url || `https://oneapp.gratis/events/${event.id}`;
     
+    // Get current date/time for the Revenue object name
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const formattedTime = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
+    const revenueName = `${formattedDate} ${formattedTime}`;
+    
     // Prepare the payment link parameters
     const paymentLinkParams = {
       // Use the price ID we created
@@ -101,17 +107,21 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
       'after_completion[type]': 'redirect',
       'after_completion[redirect][url]': eventPageUrl,  // Redirect back to event page
       'billing_address_collection': 'auto',
+      'customer_creation': 'always',  // Always create a customer to capture buyer info
       'submit_type': 'pay',
       
-      // Enable email receipts
+      // Enable email receipts with enhanced settings
       'invoice_creation[enabled]': 'true',
       'invoice_creation[invoice_data][description]': `Ticket purchase for ${event.name}`,
       'invoice_creation[invoice_data][footer]': `Thank you for your purchase! Visit ${eventPageUrl} for event details.`,
       
-      // Metadata to track the event
+      // Metadata to track the event and revenue object
       'metadata[event_id]': event.id,
       'metadata[event_name]': event.name,
-      'metadata[event_url]': eventPageUrl
+      'metadata[event_url]': eventPageUrl,
+      'metadata[revenue_name]': revenueName,
+      'metadata[revenue_object]': 'true',
+      'metadata[attach_buyer]': 'true'
     };
     
     // Add any additional event details to the metadata if available
