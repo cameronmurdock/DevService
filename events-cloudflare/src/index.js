@@ -289,7 +289,13 @@ export default {
                       // Create product name that includes both event name and ticket name
                       productName: ticket.name ? `${event.name} - ${ticket.name}` : `Ticket: ${event.name}`,
                       // Add any additional metadata needed for the ticket
-                      ticketDescription: ticket.description || `Admission to ${event.name}`
+                      ticketDescription: ticket.description || `Admission to ${event.name}`,
+                      // Include the full URL to the event page for receipts and redirects
+                      url: `https://oneapp.gratis/events/${event.id}`,
+                      // Format date for receipts if available
+                      date: event.date ? formatDate(event.date) : undefined,
+                      // Include location information if available
+                      location: event.location || event.venue || undefined
                     };
                     
                     console.log(`Creating payment link for ticket: ${ticket.name} with price: $${ticket.price}`);
@@ -907,6 +913,31 @@ function renderEventPage(event, guestbookStatus = '') {
       .ticket-status.pending {
         background-color: #fffbeb;
         color: #92400e;
+      }
+      
+      .ticket-features {
+        margin: 1rem 0;
+        padding: 0.75rem;
+        background-color: #f9fafb;
+        border-radius: 0.375rem;
+      }
+      
+      .feature-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        color: #4b5563;
+      }
+      
+      .feature-item:last-child {
+        margin-bottom: 0;
+      }
+      
+      .feature-item svg {
+        color: #10b981;
+        margin-right: 0.5rem;
+        flex-shrink: 0;
       }
       
       .sidebar-card {

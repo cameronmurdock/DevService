@@ -63,26 +63,56 @@ export async function getOrCreateStripePaymentLink(stripeSecretKey, event) {
     
     // Now create the payment link with the price ID
     console.log('Creating payment link with the price');
+    
+    // Prepare the URL to the event page for the receipt and after-payment redirect
+    const eventPageUrl = event.url || `https://oneapp.gratis/events/${event.id}`;
+    
+    // Prepare the payment link parameters
+    const paymentLinkParams = {
+      // Use the price ID we created
+      'line_items[0][price]': priceData.id,
+      'line_items[0][quantity]': '1',
+      'line_items[0][adjustable_quantity][enabled]': 'true',  // Allow multiple tickets
+      'line_items[0][adjustable_quantity][minimum]': '1',     // Minimum 1 ticket
+      'line_items[0][adjustable_quantity][maximum]': '10',    // Maximum 10 tickets
+      
+      // Payment link settings
+      'after_completion[type]': 'redirect',
+      'after_completion[redirect][url]': eventPageUrl,  // Redirect back to event page
+      'billing_address_collection': 'auto',
+      'submit_type': 'pay',
+      
+      // Enable email receipts
+      'invoice_creation[enabled]': 'true',
+      'invoice_creation[invoice_data][description]': `Ticket purchase for ${event.name}`,
+      'invoice_creation[invoice_data][footer]': `Thank you for your purchase! Visit ${eventPageUrl} for event details.`,
+      
+      // Custom receipt email settings
+      'custom_text[receipt]': `Thank you for purchasing tickets to ${event.name}! Visit ${eventPageUrl} for event details and updates.`,
+      
+      // Metadata to track the event
+      'metadata[event_id]': event.id,
+      'metadata[event_name]': event.name,
+      'metadata[event_url]': eventPageUrl
+    };
+    
+    // Add any additional event details to the metadata if available
+    if (event.date) {
+      paymentLinkParams['metadata[event_date]'] = event.date;
+      paymentLinkParams['custom_text[receipt]'] += ` The event is scheduled for ${event.date}.`;
+    }
+    
+    if (event.location) {
+      paymentLinkParams['metadata[event_location]'] = event.location;
+    }
+    
     const res = await fetch('https://api.stripe.com/v1/payment_links', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${stripeSecretKey}`,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: new URLSearchParams({
-        // Use the price ID we created
-        'line_items[0][price]': priceData.id,
-        'line_items[0][quantity]': '1',
-        
-        // Payment link settings
-        'after_completion[type]': 'hosted_confirmation',
-        'billing_address_collection': 'auto',
-        'submit_type': 'pay',
-        
-        // Metadata to track the event
-        'metadata[event_id]': event.id,
-        'metadata[event_name]': event.name
-      })
+      body: new URLSearchParams(paymentLinkParams)
     });
     
     const data = await res.json();
